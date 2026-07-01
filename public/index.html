@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Bot-Hosting Claimer</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Baloo+2:wght@400;500;600;700&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg: #fff0f6;
+  --bg2: #ffffff;
+  --bg3: #fff5fa;
+  --border: #ffd6e8;
+  --border2: #ffb3d9;
+  --text: #5a2a45;
+  --text2: #b0779c;
+  --accent: #ff6fa8;
+  --accent2: #ff4f95;
+  --accentDim: rgba(255,111,168,0.14);
+  --warn: #ffab5e;
+  --err: #ff6b7a;
+  --blue: #b28dff;
+  --mono: 'JetBrains Mono', monospace;
+  --sans: 'Quicksand', sans-serif;
+  --display: 'Baloo 2', cursive;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:radial-gradient(circle at 20% 0%, #ffe3f0 0%, #fff0f6 45%, #fff8fb 100%);color:var(--text);font-family:var(--sans);min-height:100vh}
+.app{max-width:720px;margin:0 auto;padding:24px 16px 64px}
+.header{padding:28px 0 20px;border-bottom:1px solid var(--border);margin-bottom:24px}
+.header h1{font-family:var(--display);font-size:24px;font-weight:700;letter-spacing:-0.3px}
+.header h1 span{color:var(--accent)}
+.header p{font-size:13px;color:var(--text2);margin-top:6px}
+.token-badge{display:inline-flex;align-items:center;gap:6px;background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-family:var(--mono);font-size:12px;color:var(--text2);margin-top:8px}
+.token-badge.ok{border-color:rgba(255,111,168,0.35);color:var(--accent)}
+.token-dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:18px;padding:20px;margin-bottom:16px;box-shadow:0 4px 18px rgba(255,111,168,0.08)}
+.card-title{font-size:13px;font-weight:700;color:var(--accent2);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+label{display:block;font-size:12px;color:var(--text2);margin-bottom:6px;font-weight:500}
+input,select,textarea{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--text);font-size:14px;font-family:var(--sans);outline:none;transition:border-color .2s}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accentDim)}
+input::placeholder,textarea::placeholder{color:#d99dbd}
+select option{background:var(--bg3)}
+textarea{resize:vertical;min-height:72px;font-family:var(--mono);font-size:12px;line-height:1.6}
+.field{margin-bottom:14px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:480px){.row{grid-template-columns:1fr}}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 18px;border-radius:24px;border:none;cursor:pointer;font-size:14px;font-weight:700;font-family:var(--sans);transition:all .15s;white-space:nowrap}
+.btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;box-shadow:0 4px 14px rgba(255,79,149,0.35)}
+.btn-primary:hover:not(:disabled){background:var(--accent2);transform:translateY(-1px);box-shadow:0 6px 18px rgba(255,79,149,0.45)}
+.btn-ghost{background:var(--bg3);color:var(--text2);border:1px solid var(--border)}
+.btn-ghost:hover:not(:disabled){border-color:var(--border2);color:var(--text)}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none!important}
+.btn-sm{padding:7px 14px;font-size:13px}
+.btn-full{width:100%}
+/* Token list */
+.token-list{display:flex;flex-direction:column;gap:6px;margin-bottom:10px;max-height:200px;overflow-y:auto}
+.token-item{display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:9px 12px}
+.token-item.active-t{border-color:var(--accent);background:var(--accentDim)}
+.token-item.done-t{border-color:rgba(255,111,168,0.3);opacity:.7}
+.token-item.error-t{border-color:rgba(255,107,122,0.4)}
+.token-item.cooldown-t{border-color:rgba(255,171,94,0.4)}
+.ti-num{font-family:var(--mono);font-size:11px;color:var(--text2);min-width:22px;flex-shrink:0}
+.ti-mask{font-family:var(--mono);font-size:12px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ti-coins{font-family:var(--mono);font-size:12px;color:var(--accent);min-width:52px;text-align:right;flex-shrink:0}
+.ti-del{background:none;border:none;cursor:pointer;color:var(--err);padding:2px 6px;font-size:14px;border-radius:4px;opacity:.5;flex-shrink:0}
+.ti-del:hover{opacity:1;background:rgba(248,113,113,.1)}
+.add-row{display:flex;gap:8px;align-items:flex-start}
+.add-row textarea{flex:1}
+/* Account info */
+.info-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:4px}
+.info-item{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px}
+.info-item .lbl{font-size:11px;color:var(--text2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px}
+.info-item .val{font-size:16px;font-weight:700;font-family:var(--mono);color:var(--text)}
+.info-item .val.coins{color:var(--accent);font-size:20px}
+.server-row{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:9px;margin-bottom:6px;font-size:13px}
+.status-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.status-online{background:#ff6fa8}.status-offline{background:#ff6b7a}.status-other{background:#ffab5e}
+.tx-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px}
+.tx-row:last-child{border:none}
+.tx-amount.pos{color:var(--accent)}.tx-amount.neg{color:var(--err)}
+/* Rounds */
+.rounds{display:flex;gap:10px;margin-bottom:16px}
+.round-card{flex:1;background:var(--bg3);border:2px solid var(--border);border-radius:14px;padding:14px 10px;text-align:center;transition:all .2s;position:relative;overflow:hidden}
+.round-card.active{border-color:var(--accent);background:var(--accentDim)}
+.round-card.done{border-color:rgba(255,111,168,0.3);opacity:.7}
+.round-card.done::after{content:'✓';position:absolute;top:6px;right:8px;font-size:14px;color:var(--accent)}
+.round-card .rnum{font-family:var(--mono);font-size:11px;color:var(--text2);margin-bottom:4px}
+.round-card .rreward{font-family:var(--mono);font-size:22px;font-weight:700;color:var(--accent)}
+.round-card .rreward span{font-size:12px}
+.round-card .rlabel{font-size:11px;color:var(--text2);margin-top:2px}
+/* Captcha */
+.captcha-box{background:var(--bg3);border:1px dashed var(--border2);border-radius:12px;padding:14px;margin-bottom:14px}
+.captcha-box .ctitle{font-size:12px;color:var(--warn);font-weight:600;margin-bottom:10px}
+#hcaptcha-widget{min-height:72px;display:flex;align-items:center;justify-content:center}
+.captcha-preview{margin-top:8px;font-family:var(--mono);font-size:11px;color:var(--accent);word-break:break-all;max-height:40px;overflow:hidden}
+/* Log */
+.log{background:#fff9fc;border:1px solid var(--border);border-radius:12px;padding:14px;font-family:var(--mono);font-size:12px;color:var(--text2);min-height:56px;max-height:260px;overflow-y:auto;line-height:1.7}
+.log .ok{color:var(--accent)}.log .err{color:var(--err)}.log .warn{color:var(--warn)}.log .info{color:var(--blue)}
+/* Progress */
+.progress-bar{height:3px;background:var(--border);border-radius:2px;overflow:hidden;margin-bottom:14px}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),#86efac);border-radius:2px;transition:width .4s ease}
+/* Cooldown */
+.cooldown-box{background:var(--bg3);border:1px solid rgba(255,171,94,.35);border-radius:12px;padding:12px 14px;margin-bottom:14px;display:none}
+.cooldown-box.show{display:block}
+.cooldown-label{font-size:12px;color:var(--warn);margin-bottom:4px;font-weight:600}
+.cooldown-time{font-family:var(--mono);font-size:24px;font-weight:700;color:var(--warn)}
+/* Spinner */
+.spin{display:inline-block;width:14px;height:14px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* Tabs */
+.tabs{display:flex;gap:4px;margin-bottom:20px;background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:4px}
+.tab{flex:1;padding:9px;border:none;background:none;color:var(--text2);font-family:var(--sans);font-size:13px;font-weight:600;border-radius:12px;cursor:pointer;transition:all .15s}
+.tab.active{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:1px solid transparent}
+/* misc */
+.hidden{display:none!important}
+.divider{height:1px;background:var(--border);margin:16px 0}
+.hint{font-size:12px;color:var(--text2);margin-top:6px;line-height:1.5}
+.flex-between{display:flex;align-items:center;justify-content:space-between}
+.session-box{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:14px;font-size:12px;color:var(--text2);line-height:2}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <h1>🎀 Bot-Hosting <span>Claimer</span></h1>
+    <p>Claim free coins tự động · 3 lần claim · Multi-token · Render.com Hosting</p>
+    <div class="token-badge" id="tokenBadge">
+      <div class="token-dot"></div>
+      <span id="tokenBadgeTxt">chưa có token</span>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('claim',this)">🍬 Claim Coins</button>
+    <button class="tab" onclick="switchTab('info',this)">🐰 Tài khoản</button>
+  </div>
+
+  <!-- TAB CLAIM -->
+  <div id="tab-claim">
+    <div class="card">
+      <div class="card-title">Cấu hình</div>
+      <label>DANH SÁCH TOKEN BOT-HOSTING.NET</label>
+      <div class="token-list" id="token-list">
+        <div style="font-size:12px;color:var(--text2);padding:4px 0">Chưa có token nào.</div>
+      </div>
+      <div class="add-row" style="margin-bottom:8px">
+        <textarea id="inp-new-tokens" placeholder="Dán token vào đây (1 token/dòng, có thể dán nhiều)..."></textarea>
+        <button class="btn btn-ghost btn-sm" style="flex-shrink:0" onclick="addTokens()">💗 Thêm</button>
+      </div>
+      <p class="hint" style="margin-bottom:14px">Hỗ trợ mọi loại token (Bearer JWT...). Thêm nhiều token → tự động claim từng cái.</p>
+
+      <div class="divider"></div>
+      <div class="row" style="margin-bottom:0">
+        <div class="field" style="margin-bottom:0">
+          <label>CAPTCHA PROVIDER</label>
+          <select id="inp-provider" onchange="onProviderChange()">
+            <option value="manual">Tự giải (miễn phí)</option>
+            <option value="yescaptcha">YesCaptcha</option>
+            <option value="2captcha">2Captcha</option>
+          </select>
+        </div>
+        <div class="field" id="apikey-field" style="display:none;margin-bottom:0">
+          <label>CAPTCHA CLIENT KEY</label>
+          <input type="text" id="inp-captchaKey" placeholder="API key..."/>
+        </div>
+      </div>
+      <div class="flex-between" style="margin-top:12px">
+        <button class="btn btn-ghost btn-sm" onclick="clearStorage()">Xoá lưu</button>
+        <span id="save-status" style="font-size:12px;color:var(--text2)"></span>
+      </div>
+    </div>
+
+    <!-- Claim card -->
+    <div class="card">
+      <div class="card-title flex-between">
+        <span>🌸 3 lần claim</span>
+        <span id="cur-tok-lbl" style="font-size:11px;font-family:var(--mono);color:var(--text2)"></span>
+      </div>
+      <div class="rounds">
+        <div class="round-card active" id="round-1"><div class="rnum">LẦN 1</div><div class="rreward">+4<span>xu</span></div><div class="rlabel">Lần đầu</div></div>
+        <div class="round-card" id="round-2"><div class="rnum">LẦN 2</div><div class="rreward">+5<span>xu</span></div><div class="rlabel">Bonus</div></div>
+        <div class="round-card" id="round-3"><div class="rnum">LẦN 3</div><div class="rreward">+1<span>xu</span></div><div class="rlabel">Cuối</div></div>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0"></div></div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:14px">
+        Token hiện tại: <strong style="color:var(--accent);font-family:var(--mono)" id="totalEarned">0xu</strong>
+        &nbsp;·&nbsp; Tổng tất cả: <strong style="color:var(--blue);font-family:var(--mono)" id="grandTotal">0xu</strong>
+      </div>
+
+      <div class="session-box" id="session-box" style="display:none"></div>
+
+      <div class="cooldown-box" id="cooldown-box">
+        <div class="cooldown-label">⏳ Cooldown — chưa thể claim</div>
+        <div class="cooldown-time" id="cooldown-timer">--:--:--</div>
+      </div>
+
+      <div class="captcha-box" id="captcha-section" style="display:none">
+        <div class="ctitle">🔐 Giải hCaptcha (miễn phí)</div>
+        <div id="hcaptcha-widget"></div>
+        <div class="captcha-preview" id="captcha-preview"></div>
+        <p class="hint">Bấm ô check ở trên để giải. Token có hiệu lực ~2 phút — giải xong bấm Claim ngay.</p>
+      </div>
+
+      <button class="btn btn-primary btn-full" id="btn-claim" onclick="startClaimSession()">
+        💖 Claim ngay (lần <span id="claimRoundTxt">1</span>/3)
+      </button>
+      <p class="hint" style="margin-top:10px">One-shot: tự bấm lại sau cooldown. Multi-token: tự claim qua từng token.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title flex-between">
+        <span>Log</span>
+        <button class="btn btn-ghost btn-sm" onclick="clearLog()">Xoá</button>
+      </div>
+      <div class="log" id="log">Thêm token và bấm <strong>Claim ngay</strong> để bắt đầu.</div>
+    </div>
+  </div>
+
+  <!-- TAB INFO -->
+  <div id="tab-info" class="hidden">
+    <div class="card">
+      <div class="card-title flex-between">
+        <span>🐰 Thông tin tài khoản</span>
+        <div style="display:flex;gap:8px;align-items:center">
+          <select id="info-sel" style="width:auto;font-size:12px;padding:6px 10px"><option value="">-- Chọn token --</option></select>
+          <button class="btn btn-primary btn-sm" id="btn-fetch-info" onclick="fetchInfo()">Lấy info</button>
+        </div>
+      </div>
+      <div id="info-placeholder" style="font-size:13px;color:var(--text2)">Chọn token rồi bấm Lấy info.</div>
+      <div id="info-content" class="hidden">
+        <div class="info-grid">
+          <div class="info-item"><div class="lbl">Username</div><div class="val" id="i-username">—</div></div>
+          <div class="info-item"><div class="lbl">Số dư coins</div><div class="val coins" id="i-coins">—</div></div>
+          <div class="info-item"><div class="lbl">Discord ID</div><div class="val" id="i-discord" style="font-size:13px">—</div></div>
+          <div class="info-item"><div class="lbl">Servers</div><div class="val" id="i-servers">—</div></div>
+        </div>
+        <div class="divider"></div>
+        <div style="font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Servers</div>
+        <div id="i-server-list"></div>
+        <div class="divider"></div>
+        <div style="font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">5 giao dịch gần nhất</div>
+        <div id="i-tx-list"></div>
+        <div class="divider"></div>
+        <div style="font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Free Coins Status</div>
+        <div id="i-free-status" style="font-size:13px"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://js.hcaptcha.com/1/api.js" async defer></script>
+<script>
+const REWARDS = [4, 5, 1];
+let tokens = []; // { raw, mask, status, earned, username }
+let currentTokenIdx = 0;
+let currentRound = 1;
+let totalEarned = 0;
+let grandTotal = 0;
+let captchaToken = '';
+let cooldownInterval = null;
+let hcaptchaWidgetId = null;
+let isClaiming = false;
+
+function maskToken(t) {
+  if (!t || t.length < 12) return '***';
+  return t.slice(0,6) + '···' + t.slice(-4);
+}
+
+function switchTab(tab, btn) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tab-claim').classList.toggle('hidden', tab !== 'claim');
+  document.getElementById('tab-info').classList.toggle('hidden', tab !== 'info');
+  if (tab === 'info') renderInfoSel();
+}
+
+function addTokens() {
+  const raw = document.getElementById('inp-new-tokens').value.trim();
+  if (!raw) return;
+  const lines = raw.split(/[\n,]+/).map(l => l.trim()).filter(l => l.length > 8);
+  let added = 0;
+  lines.forEach(tok => {
+    if (!tokens.find(t => t.raw === tok)) {
+      tokens.push({ raw: tok, mask: maskToken(tok), status: 'pending', earned: 0, username: '' });
+      added++;
+    }
+  });
+  document.getElementById('inp-new-tokens').value = '';
+  if (added) { addLog(`➕ Đã thêm ${added} token. Tổng: ${tokens.length}.`, 'info'); saveToStorage(); }
+  renderTL(); updateBadge();
+}
+
+function removeToken(i) {
+  tokens.splice(i, 1);
+  if (currentTokenIdx >= tokens.length) currentTokenIdx = Math.max(0, tokens.length - 1);
+  renderTL(); updateBadge(); saveToStorage();
+}
+
+function renderTL() {
+  const c = document.getElementById('token-list');
+  if (!tokens.length) { c.innerHTML = '<div style="font-size:12px;color:var(--text2);padding:4px 0">Chưa có token nào.</div>'; return; }
+  const icons = { pending:'⬜', active:'💗', done:'✅', error:'❌', cooldown:'⏳' };
+  c.innerHTML = tokens.map((t,i) => {
+    const cls = i===currentTokenIdx&&isClaiming?'active-t':t.status==='done'?'done-t':t.status==='error'?'error-t':t.status==='cooldown'?'cooldown-t':'';
+    const user = t.username ? ` · ${t.username}` : '';
+    return `<div class="token-item ${cls}">
+      <span class="ti-num">${i+1}.</span>
+      <span class="ti-mask">${icons[t.status]||'⬜'} ${t.mask}${user}</span>
+      <span class="ti-coins">${t.earned>0?'+'+t.earned+'xu':''}</span>
+      <button class="ti-del" onclick="removeToken(${i})">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function updateBadge() {
+  const b = document.getElementById('tokenBadge'), txt = document.getElementById('tokenBadgeTxt');
+  if (!tokens.length) { b.classList.remove('ok'); txt.textContent='chưa có token'; }
+  else { b.classList.add('ok'); txt.textContent=tokens.length+' token'; }
+}
+
+function saveToStorage() {
+  localStorage.setItem('bh_tokens_v2', JSON.stringify(tokens.map(t=>t.raw)));
+  localStorage.setItem('bh_provider', document.getElementById('inp-provider').value);
+  const ck = document.getElementById('inp-captchaKey').value;
+  if (ck) localStorage.setItem('bh_captchaKey', ck);
+  document.getElementById('save-status').textContent='💾 Đã lưu';
+  setTimeout(()=>document.getElementById('save-status').textContent='',1500);
+}
+
+function loadFromStorage() {
+  try { JSON.parse(localStorage.getItem('bh_tokens_v2')||'[]').forEach(r=>{ if(r&&!tokens.find(t=>t.raw===r)) tokens.push({raw:r,mask:maskToken(r),status:'pending',earned:0,username:''}); }); } catch(e){}
+  const lg = localStorage.getItem('bh_token');
+  if (lg && !tokens.find(t=>t.raw===lg)) tokens.push({raw:lg,mask:maskToken(lg),status:'pending',earned:0,username:''});
+  const p=localStorage.getItem('bh_provider'); if(p) document.getElementById('inp-provider').value=p;
+  const ck=localStorage.getItem('bh_captchaKey'); if(ck) document.getElementById('inp-captchaKey').value=ck;
+  onProviderChange(); renderTL(); updateBadge();
+}
+
+function clearStorage() {
+  ['bh_tokens_v2','bh_token','bh_provider','bh_captchaKey'].forEach(k=>localStorage.removeItem(k));
+  tokens=[]; renderTL(); updateBadge();
+  document.getElementById('inp-captchaKey').value='';
+  document.getElementById('save-status').textContent='🗑 Đã xoá';
+  setTimeout(()=>document.getElementById('save-status').textContent='',1500);
+}
+
+function onProviderChange() {
+  const p = document.getElementById('inp-provider').value;
+  document.getElementById('apikey-field').style.display = p==='manual'?'none':'block';
+  document.getElementById('captcha-section').style.display = p==='manual'?'block':'none';
+  if (p==='manual') renderHcaptcha();
+}
+
+function renderHcaptcha() {
+  if (!window.hcaptcha || hcaptchaWidgetId!==null) return;
+  try {
+    hcaptchaWidgetId = hcaptcha.render('hcaptcha-widget', {
+      sitekey:'21335a07-5b97-4a79-b1e9-b197dc35017a', theme:'dark',
+      callback: tok => { captchaToken=tok; document.getElementById('captcha-preview').textContent='✅ Token: '+tok.slice(0,40)+'...'; addLog('✅ hCaptcha đã giải xong — bấm Claim ngay!','ok'); },
+      'expired-callback': ()=>{ captchaToken=''; document.getElementById('captcha-preview').textContent=''; addLog('⚠ hCaptcha token hết hạn — giải lại!','warn'); }
+    });
+  } catch(e){}
+}
+function ensureHcaptcha() {
+  if (document.getElementById('inp-provider').value==='manual'&&!hcaptchaWidgetId) {
+    if (window.hcaptcha) renderHcaptcha(); else setTimeout(ensureHcaptcha,500);
+  }
+}
+function resetCaptcha() {
+  captchaToken=''; document.getElementById('captcha-preview').textContent='';
+  if (window.hcaptcha&&hcaptchaWidgetId!==null) try{hcaptcha.reset(hcaptchaWidgetId);}catch(e){}
+}
+
+function updateRoundsUI() {
+  for (let i=1;i<=3;i++) {
+    const el=document.getElementById('round-'+i);
+    el.classList.remove('active','done');
+    if (i<currentRound) el.classList.add('done');
+    else if (i===currentRound) el.classList.add('active');
+  }
+  document.getElementById('progressFill').style.width = (((currentRound-1)/3)*100)+'%';
+  document.getElementById('claimRoundTxt').textContent = currentRound;
+  document.getElementById('totalEarned').textContent = totalEarned+'xu';
+  document.getElementById('grandTotal').textContent = grandTotal+'xu';
+  if (tokens.length>0&&currentTokenIdx<tokens.length) {
+    const t=tokens[currentTokenIdx];
+    document.getElementById('cur-tok-lbl').textContent=`Token ${currentTokenIdx+1}/${tokens.length}: ${t.mask}`;
+  } else document.getElementById('cur-tok-lbl').textContent='';
+}
+
+function startCooldown(ms) {
+  if (cooldownInterval) clearInterval(cooldownInterval);
+  document.getElementById('cooldown-box').classList.add('show');
+  document.getElementById('btn-claim').disabled=true;
+  let rem=Math.max(0,Math.round(ms/1000));
+  function tick() {
+    if (rem<=0) { clearInterval(cooldownInterval); cooldownInterval=null; document.getElementById('cooldown-box').classList.remove('show'); document.getElementById('btn-claim').disabled=false; addLog('⏰ Cooldown xong! Có thể claim lại rồi.','ok'); return; }
+    const h=Math.floor(rem/3600),m=Math.floor((rem%3600)/60),s=rem%60;
+    document.getElementById('cooldown-timer').textContent=String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+    rem--;
+  }
+  tick(); cooldownInterval=setInterval(tick,1000);
+}
+
+function addLog(msg, type='info') {
+  const log=document.getElementById('log');
+  const d=document.createElement('div'); d.className=type;
+  const t=new Date().toLocaleTimeString('vi-VN',{hour12:false});
+  d.textContent=`[${t}] ${msg}`; log.appendChild(d); log.scrollTop=log.scrollHeight;
+}
+function clearLog(){ document.getElementById('log').innerHTML=''; }
+
+async function doClaimRound(token, round, provider, captchaKey, hcapTok) {
+  const body={token,round,provider:provider!=='manual'?provider:'yescaptcha'};
+  if (provider==='manual'&&hcapTok) body.hcaptchaToken=hcapTok;
+  else if (provider!=='manual'&&captchaKey) { body.captchaKey=captchaKey; body.provider=provider; }
+  const resp=await fetch('/api/claim',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  return {resp, data:await resp.json()};
+}
+
+async function startClaimSession() {
+  if (!tokens.length) { addLog('❌ Chưa có token! Thêm token trước.','err'); return; }
+  const provider=document.getElementById('inp-provider').value;
+  const captchaKey=document.getElementById('inp-captchaKey').value.trim();
+  if (provider==='manual'&&!captchaToken) { addLog('⚠ Cần giải hCaptcha trước!','warn'); return; }
+
+  const btn=document.getElementById('btn-claim');
+  btn.disabled=true; isClaiming=true; saveToStorage();
+
+  for (let i=currentTokenIdx; i<tokens.length; i++) {
+    if (tokens[i].status==='done') continue;
+    currentTokenIdx=i; tokens[i].status='active';
+    // If starting fresh on this token, reset round
+    if (tokens[i].earned===0) { currentRound=1; totalEarned=0; }
+    renderTL(); updateRoundsUI();
+    addLog(`── Token ${i+1}/${tokens.length}: ${tokens[i].mask} ──`,'info');
+
+    let tokDone=true;
+    for (let r=currentRound; r<=3; r++) {
+      currentRound=r; updateRoundsUI();
+      addLog(`💖 Bắt đầu claim lần ${r}/3 (dự kiến +${REWARDS[r-1]}xu)...`,'info');
+      try {
+        const {resp,data}=await doClaimRound(tokens[i].raw,r,provider,captchaKey,provider==='manual'?captchaToken:'');
+
+        if (data.needCaptcha||(data.status===false&&!data.cooldownMs&&!data.claimed)) {
+          addLog('⚠ Cần giải captcha trước!','warn');
+          tokens[i].status='pending'; tokDone=false; break;
+        }
+        if (data.cooldownMs&&!data.claimed) {
+          addLog(`⏳ Token này đang cooldown (${data.cooldownSec}s)...`,'warn');
+          tokens[i].status='cooldown'; tokDone=false;
+          const remainingActive=tokens.filter(t=>t.status==='pending').length;
+          if (i===tokens.length-1||remainingActive===0) startCooldown(data.cooldownMs);
+          break;
+        }
+        if (!data.status) {
+          addLog('❌ '+(data.message||'Claim thất bại'),'err');
+          tokens[i].status='error'; tokDone=false; break;
+        }
+        // success — server đã loop đủ xu
+        const reward=data.amount||REWARDS[r-1];
+        if (Array.isArray(data.logs)&&data.logs.length>0) {
+          data.logs.forEach(l=>{
+            if(l.ok) addLog(`  ↳ +1xu (${l.step}/${reward}) | Số dư: ${l.balance??'?'}`,'ok');
+            else addLog(`  ↳ ${l.msg||'thử lại...'}`,'warn');
+          });
+        }
+        totalEarned+=reward; grandTotal+=reward;
+        tokens[i].earned=(tokens[i].earned||0)+reward;
+        if (data.username) tokens[i].username=data.username;
+        addLog(`✅ Lần ${r} xong: +${reward}xu | Số dư: ${data.balance??'?'} | ${data.username||''} | ${data.tookMs}ms`,'ok');
+        updateRoundsUI(); renderTL();
+
+        // Sau mỗi round: reset captcha, chờ user giải lại
+        if (provider==='manual') {
+          resetCaptcha();
+          if (r<3) {
+            addLog(`⚠ Giải lại captcha cho lần ${r+1}/3 rồi bấm Claim!`,'warn');
+            currentRound=r+1; updateRoundsUI();
+            tokens[i].status='active'; renderTL();
+            isClaiming=false; btn.disabled=false;
+            btn.innerHTML=`💖 Claim ngay (lần <span id="claimRoundTxt">${currentRound}</span>/3)`;
+            return;
+          }
+        }
+      } catch(e) {
+        addLog('❌ Lỗi network: '+e.message,'err');
+        tokens[i].status='error'; tokDone=false; break;
+      }
+    }
+
+    if (tokDone) {
+      document.getElementById('round-3').classList.remove('active');
+      document.getElementById('round-3').classList.add('done');
+      document.getElementById('progressFill').style.width='100%';
+      tokens[i].status='done';
+      addLog(`🌸 Token ${i+1} xong! +${tokens[i].earned}xu`,'ok');
+      // reset for next token
+      currentRound=1; totalEarned=0;
+      if (i<tokens.length-1) await new Promise(r=>setTimeout(r,600));
+    }
+    renderTL(); updateRoundsUI();
+  }
+
+  // Summary
+  const done=tokens.filter(t=>t.status==='done'), errs=tokens.filter(t=>t.status==='error'), cds=tokens.filter(t=>t.status==='cooldown');
+  let sum=`✅ ${done.length} token xong`;
+  if (errs.length) sum+=` · ❌ ${errs.length} lỗi`;
+  if (cds.length) sum+=` · ⏳ ${cds.length} cooldown`;
+  sum+=` · Tổng +${grandTotal}xu`;
+  addLog(`🎀 ${sum}`,'ok');
+
+  const sb=document.getElementById('session-box');
+  sb.style.display='block';
+  sb.innerHTML=tokens.map((t,i)=>`Token ${i+1} (${t.mask}): ${t.status==='done'?'✅ +'+t.earned+'xu':t.status==='error'?'❌ lỗi':t.status==='cooldown'?'⏳ cooldown':'⬜ '+t.earned+'xu'}${t.username?' · '+t.username:''}`).join('<br>');
+
+  isClaiming=false; btn.disabled=false;
+  btn.innerHTML=`💖 Claim ngay (lần <span id="claimRoundTxt">${currentRound}</span>/3)`;
+}
+
+function renderInfoSel() {
+  document.getElementById('info-sel').innerHTML='<option value="">-- Chọn token --</option>'+
+    tokens.map((t,i)=>`<option value="${i}">Token ${i+1}: ${t.mask}${t.username?' · '+t.username:''}</option>`).join('');
+}
+
+async function fetchInfo() {
+  const idx=parseInt(document.getElementById('info-sel').value);
+  if (isNaN(idx)||idx<0||idx>=tokens.length) { document.getElementById('info-placeholder').textContent='❌ Chọn token trước!'; return; }
+  const token=tokens[idx].raw;
+  const btn=document.getElementById('btn-fetch-info'); btn.disabled=true; btn.innerHTML='<span class="spin"></span>';
+  try {
+    const resp=await fetch('/api/info?token='+encodeURIComponent(token));
+    const data=await resp.json();
+    if (!data.status) { document.getElementById('info-placeholder').textContent='❌ '+data.message; document.getElementById('info-content').classList.add('hidden'); return; }
+    document.getElementById('info-placeholder').classList.add('hidden');
+    document.getElementById('info-content').classList.remove('hidden');
+    const a=data.account||{};
+    document.getElementById('i-username').textContent=a.username||'—';
+    document.getElementById('i-coins').textContent=(a.coins??'—')+' xu';
+    document.getElementById('i-discord').textContent=a.discord||'—';
+    document.getElementById('i-servers').textContent=data.servers?.count??'—';
+    if (a.username) { tokens[idx].username=a.username; renderTL(); }
+    const sl=document.getElementById('i-server-list'); sl.innerHTML='';
+    (data.servers?.list||[]).forEach(s=>{ const st=(s.status||'').toLowerCase(),dc=st==='running'||st==='online'?'status-online':st==='stopped'||st==='offline'?'status-offline':'status-other'; sl.innerHTML+=`<div class="server-row"><span style="font-weight:600">${s.name||s.id}</span><div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2)"><span>${s.type||''}</span><div class="status-dot ${dc}"></div></div></div>`; });
+    if (!data.servers?.list?.length) sl.innerHTML='<p style="font-size:13px;color:var(--text2)">Không có server</p>';
+    const tl=document.getElementById('i-tx-list'); tl.innerHTML='';
+    (data.recentTransactions||[]).forEach(t=>{ const pos=(t.amount||0)>=0; tl.innerHTML+=`<div class="tx-row"><span>${t.text||'tx'}</span><span class="tx-amount ${pos?'pos':'neg'}">${pos?'+':''}${t.amount||0}</span></div>`; });
+    if (!data.recentTransactions?.length) tl.innerHTML='<p style="font-size:13px;color:var(--text2)">Không có giao dịch</p>';
+    const fc=data.freeCoins||{};
+    document.getElementById('i-free-status').innerHTML=fc.claimable?'<span style="color:var(--accent)">✅ Có thể claim ngay!</span>':`<span style="color:var(--warn)">⏳ Cooldown còn: ${fc.cooldownSec??'?'}s</span>`;
+  } finally { btn.disabled=false; btn.innerHTML='Lấy info'; }
+}
+
+document.getElementById('inp-new-tokens').addEventListener('keydown', e=>{ if(e.key==='Enter'&&e.ctrlKey){e.preventDefault();addTokens();} });
+loadFromStorage(); updateRoundsUI(); ensureHcaptcha();
+</script>
+</body>
+</html>
