@@ -55,14 +55,18 @@ textarea{resize:vertical;min-height:72px;font-family:var(--mono);font-size:12px;
 .btn-full{width:100%}
 /* Token list */
 .token-list{display:flex;flex-direction:column;gap:6px;margin-bottom:10px;max-height:200px;overflow-y:auto}
-.token-item{display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:9px 12px}
+.token-item{display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:9px 12px;cursor:pointer;transition:all .15s}
+.token-item:hover{border-color:var(--border2)}
 .token-item.active-t{border-color:var(--accent);background:var(--accentDim)}
 .token-item.done-t{border-color:rgba(255,111,168,0.3);opacity:.7}
 .token-item.error-t{border-color:rgba(255,107,122,0.4)}
 .token-item.cooldown-t{border-color:rgba(255,171,94,0.4)}
+.token-item.selected-t{border-color:var(--accent2);box-shadow:0 0 0 2px var(--accentDim)}
 .ti-num{font-family:var(--mono);font-size:11px;color:var(--text2);min-width:22px;flex-shrink:0}
 .ti-mask{font-family:var(--mono);font-size:12px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ti-coins{font-family:var(--mono);font-size:12px;color:var(--accent);min-width:52px;text-align:right;flex-shrink:0}
+.ti-rename{background:none;border:none;cursor:pointer;color:var(--text2);padding:2px 6px;font-size:13px;border-radius:4px;opacity:.5;flex-shrink:0}
+.ti-rename:hover{opacity:1;background:var(--accentDim)}
 .ti-del{background:none;border:none;cursor:pointer;color:var(--err);padding:2px 6px;font-size:14px;border-radius:4px;opacity:.5;flex-shrink:0}
 .ti-del:hover{opacity:1;background:rgba(248,113,113,.1)}
 .add-row{display:flex;gap:8px;align-items:flex-start}
@@ -81,9 +85,11 @@ textarea{resize:vertical;min-height:72px;font-family:var(--mono);font-size:12px;
 .tx-amount.pos{color:var(--accent)}.tx-amount.neg{color:var(--err)}
 /* Rounds */
 .rounds{display:flex;gap:10px;margin-bottom:16px}
-.round-card{flex:1;background:var(--bg3);border:2px solid var(--border);border-radius:14px;padding:14px 10px;text-align:center;transition:all .2s;position:relative;overflow:hidden}
-.round-card.active{border-color:var(--accent);background:var(--accentDim)}
+.round-card{flex:1;background:var(--bg3);border:2px solid var(--border);border-radius:14px;padding:14px 10px;text-align:center;transition:all .2s;position:relative;overflow:hidden;cursor:pointer;user-select:none}
+.round-card:hover{border-color:var(--border2);transform:translateY(-2px)}
+.round-card.active{border-color:var(--accent);background:var(--accentDim);box-shadow:0 0 0 3px var(--accentDim)}
 .round-card.done{border-color:rgba(255,111,168,0.3);opacity:.7}
+.round-card.claiming-lock{cursor:not-allowed;opacity:.85}
 .round-card.done::after{content:'✓';position:absolute;top:6px;right:8px;font-size:14px;color:var(--accent)}
 .round-card .rnum{font-family:var(--mono);font-size:11px;color:var(--text2);margin-bottom:4px}
 .round-card .rreward{font-family:var(--mono);font-size:22px;font-weight:700;color:var(--accent)}
@@ -148,7 +154,7 @@ textarea{resize:vertical;min-height:72px;font-family:var(--mono);font-size:12px;
         <textarea id="inp-new-tokens" placeholder="Dán token vào đây (1 token/dòng, có thể dán nhiều)..."></textarea>
         <button class="btn btn-ghost btn-sm" style="flex-shrink:0" onclick="addTokens()">💗 Thêm</button>
       </div>
-      <p class="hint" style="margin-bottom:14px">Hỗ trợ mọi loại token (Bearer JWT...). Thêm nhiều token → tự động claim từng cái.</p>
+      <p class="hint" style="margin-bottom:14px">Hỗ trợ mọi loại token (Bearer JWT...). Bấm ✏️ để đặt tên nhớ, bấm vào token để chọn claim riêng nó (bấm lại để bỏ chọn, quay về claim tuần tự tất cả).</p>
 
       <div class="divider"></div>
       <div class="row" style="margin-bottom:0">
@@ -178,10 +184,11 @@ textarea{resize:vertical;min-height:72px;font-family:var(--mono);font-size:12px;
         <span id="cur-tok-lbl" style="font-size:11px;font-family:var(--mono);color:var(--text2)"></span>
       </div>
       <div class="rounds">
-        <div class="round-card active" id="round-1"><div class="rnum">LẦN 1</div><div class="rreward">+4<span>xu</span></div><div class="rlabel">Lần đầu</div></div>
-        <div class="round-card" id="round-2"><div class="rnum">LẦN 2</div><div class="rreward">+5<span>xu</span></div><div class="rlabel">Bonus</div></div>
-        <div class="round-card" id="round-3"><div class="rnum">LẦN 3</div><div class="rreward">+1<span>xu</span></div><div class="rlabel">Cuối</div></div>
+        <div class="round-card active" id="round-1" onclick="selectRound(1)"><div class="rnum">LẦN 1</div><div class="rreward">+4<span>xu</span></div><div class="rlabel">Lần đầu</div></div>
+        <div class="round-card" id="round-2" onclick="selectRound(2)"><div class="rnum">LẦN 2</div><div class="rreward">+5<span>xu</span></div><div class="rlabel">Bonus</div></div>
+        <div class="round-card" id="round-3" onclick="selectRound(3)"><div class="rnum">LẦN 3</div><div class="rreward">+1<span>xu</span></div><div class="rlabel">Cuối</div></div>
       </div>
+      <p class="hint" style="margin-top:-10px;margin-bottom:14px">💡 Bấm chọn ô muốn claim để chỉ claim riêng lần đó (bỏ qua 2 lần còn lại). Bấm lại để huỷ chọn, quay về chạy tự động lần 1 → 2 → 3.</p>
       <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0"></div></div>
       <div style="font-size:12px;color:var(--text2);margin-bottom:14px">
         Token hiện tại: <strong style="color:var(--accent);font-family:var(--mono)" id="totalEarned">0xu</strong>
@@ -230,6 +237,7 @@ textarea{resize:vertical;min-height:72px;font-family:var(--mono);font-size:12px;
       <div id="info-placeholder" style="font-size:13px;color:var(--text2)">Chọn token rồi bấm Lấy info.</div>
       <div id="info-content" class="hidden">
         <div class="info-grid">
+          <div class="info-item"><div class="lbl">ID tài khoản</div><div class="val" id="i-id" style="font-size:13px">—</div></div>
           <div class="info-item"><div class="lbl">Username</div><div class="val" id="i-username">—</div></div>
           <div class="info-item"><div class="lbl">Số dư coins</div><div class="val coins" id="i-coins">—</div></div>
           <div class="info-item"><div class="lbl">Discord ID</div><div class="val" id="i-discord" style="font-size:13px">—</div></div>
@@ -257,6 +265,8 @@ let currentTokenIdx = 0;
 let currentRound = 1;
 let totalEarned = 0;
 let grandTotal = 0;
+let manualRound = null; // null = auto chạy tuần tự 3 lần | 1/2/3 = chỉ claim đúng lần đó, bỏ 2 lần còn lại
+let selectedTokenIdx = null; // null = claim tuần tự tất cả token | số = chỉ claim riêng token đó
 let captchaToken = '';
 let cooldownInterval = null;
 let hcaptchaWidgetId = null;
@@ -282,7 +292,7 @@ function addTokens() {
   let added = 0;
   lines.forEach(tok => {
     if (!tokens.find(t => t.raw === tok)) {
-      tokens.push({ raw: tok, mask: maskToken(tok), status: 'pending', earned: 0, username: '' });
+      tokens.push({ raw: tok, mask: maskToken(tok), status: 'pending', earned: 0, username: '', name: '' });
       added++;
     }
   });
@@ -291,9 +301,37 @@ function addTokens() {
   renderTL(); updateBadge();
 }
 
+function renameToken(i) {
+  if (!tokens[i]) return;
+  const cur = tokens[i].name || '';
+  const name = prompt('Đặt tên cho token này để dễ nhớ (vd: "Acc chính", "Acc phụ"...):', cur);
+  if (name === null) return;
+  tokens[i].name = name.trim();
+  addLog(`✏️ Đã đổi tên token ${i+1} thành "${tokens[i].name||'(trống)'}"`, 'info');
+  renderTL(); saveToStorage();
+}
+
+function selectToken(i) {
+  if (isClaiming) { addLog('⚠ Đang claim dở, đợi xong rồi hẵng đổi token.','warn'); return; }
+  if (selectedTokenIdx === i) {
+    selectedTokenIdx = null;
+    addLog('↩️ Đã bỏ chọn token, quay lại claim tuần tự tất cả token.','info');
+  } else {
+    selectedTokenIdx = i;
+    currentTokenIdx = i;
+    if (tokens[i].earned===0) currentRound = manualRound || 1;
+    totalEarned = tokens[i].earned || 0;
+    const label = tokens[i].name || tokens[i].username || tokens[i].mask;
+    addLog(`👉 Đã chọn token ${i+1} (${label}) để claim riêng.`,'info');
+  }
+  renderTL(); updateRoundsUI();
+}
+
 function removeToken(i) {
   tokens.splice(i, 1);
   if (currentTokenIdx >= tokens.length) currentTokenIdx = Math.max(0, tokens.length - 1);
+  if (selectedTokenIdx === i) selectedTokenIdx = null;
+  else if (selectedTokenIdx !== null && selectedTokenIdx > i) selectedTokenIdx--;
   renderTL(); updateBadge(); saveToStorage();
 }
 
@@ -302,13 +340,20 @@ function renderTL() {
   if (!tokens.length) { c.innerHTML = '<div style="font-size:12px;color:var(--text2);padding:4px 0">Chưa có token nào.</div>'; return; }
   const icons = { pending:'⬜', active:'💗', done:'✅', error:'❌', cooldown:'⏳' };
   c.innerHTML = tokens.map((t,i) => {
-    const cls = i===currentTokenIdx&&isClaiming?'active-t':t.status==='done'?'done-t':t.status==='error'?'error-t':t.status==='cooldown'?'cooldown-t':'';
-    const user = t.username ? ` · ${t.username}` : '';
-    return `<div class="token-item ${cls}">
+    const cls = [
+      i===currentTokenIdx&&isClaiming?'active-t':'',
+      t.status==='done'?'done-t':'',
+      t.status==='error'?'error-t':'',
+      t.status==='cooldown'?'cooldown-t':'',
+      selectedTokenIdx===i?'selected-t':''
+    ].filter(Boolean).join(' ');
+    const label = t.name ? `${t.name} · ${t.mask}` : (t.username ? `${t.mask} · ${t.username}` : t.mask);
+    return `<div class="token-item ${cls}" onclick="selectToken(${i})" title="Bấm để chọn claim riêng token này">
       <span class="ti-num">${i+1}.</span>
-      <span class="ti-mask">${icons[t.status]||'⬜'} ${t.mask}${user}</span>
+      <span class="ti-mask">${icons[t.status]||'⬜'} ${selectedTokenIdx===i?'📌 ':''}${label}</span>
       <span class="ti-coins">${t.earned>0?'+'+t.earned+'xu':''}</span>
-      <button class="ti-del" onclick="removeToken(${i})">✕</button>
+      <button class="ti-rename" onclick="event.stopPropagation();renameToken(${i})" title="Đặt tên">✏️</button>
+      <button class="ti-del" onclick="event.stopPropagation();removeToken(${i})">✕</button>
     </div>`;
   }).join('');
 }
@@ -320,7 +365,7 @@ function updateBadge() {
 }
 
 function saveToStorage() {
-  localStorage.setItem('bh_tokens_v2', JSON.stringify(tokens.map(t=>t.raw)));
+  localStorage.setItem('bh_tokens_v2', JSON.stringify(tokens.map(t=>({raw:t.raw,name:t.name||''}))));
   localStorage.setItem('bh_provider', document.getElementById('inp-provider').value);
   const ck = document.getElementById('inp-captchaKey').value;
   if (ck) localStorage.setItem('bh_captchaKey', ck);
@@ -329,9 +374,17 @@ function saveToStorage() {
 }
 
 function loadFromStorage() {
-  try { JSON.parse(localStorage.getItem('bh_tokens_v2')||'[]').forEach(r=>{ if(r&&!tokens.find(t=>t.raw===r)) tokens.push({raw:r,mask:maskToken(r),status:'pending',earned:0,username:''}); }); } catch(e){}
+  try {
+    const saved = JSON.parse(localStorage.getItem('bh_tokens_v2')||'[]');
+    saved.forEach(r=>{
+      // hỗ trợ cả định dạng cũ (mảng string) lẫn mới (mảng object {raw,name})
+      const raw = typeof r === 'string' ? r : r?.raw;
+      const name = typeof r === 'string' ? '' : (r?.name || '');
+      if (raw && !tokens.find(t=>t.raw===raw)) tokens.push({raw,mask:maskToken(raw),status:'pending',earned:0,username:'',name});
+    });
+  } catch(e){}
   const lg = localStorage.getItem('bh_token');
-  if (lg && !tokens.find(t=>t.raw===lg)) tokens.push({raw:lg,mask:maskToken(lg),status:'pending',earned:0,username:''});
+  if (lg && !tokens.find(t=>t.raw===lg)) tokens.push({raw:lg,mask:maskToken(lg),status:'pending',earned:0,username:'',name:''});
   const p=localStorage.getItem('bh_provider'); if(p) document.getElementById('inp-provider').value=p;
   const ck=localStorage.getItem('bh_captchaKey'); if(ck) document.getElementById('inp-captchaKey').value=ck;
   onProviderChange(); renderTL(); updateBadge();
@@ -339,7 +392,7 @@ function loadFromStorage() {
 
 function clearStorage() {
   ['bh_tokens_v2','bh_token','bh_provider','bh_captchaKey'].forEach(k=>localStorage.removeItem(k));
-  tokens=[]; renderTL(); updateBadge();
+  tokens=[]; selectedTokenIdx=null; renderTL(); updateBadge();
   document.getElementById('inp-captchaKey').value='';
   document.getElementById('save-status').textContent='🗑 Đã xoá';
   setTimeout(()=>document.getElementById('save-status').textContent='',1500);
@@ -376,6 +429,7 @@ function updateRoundsUI() {
   for (let i=1;i<=3;i++) {
     const el=document.getElementById('round-'+i);
     el.classList.remove('active','done');
+    el.classList.toggle('claiming-lock', isClaiming);
     if (i<currentRound) el.classList.add('done');
     else if (i===currentRound) el.classList.add('active');
   }
@@ -385,8 +439,27 @@ function updateRoundsUI() {
   document.getElementById('grandTotal').textContent = grandTotal+'xu';
   if (tokens.length>0&&currentTokenIdx<tokens.length) {
     const t=tokens[currentTokenIdx];
-    document.getElementById('cur-tok-lbl').textContent=`Token ${currentTokenIdx+1}/${tokens.length}: ${t.mask}`;
+    document.getElementById('cur-tok-lbl').textContent=`Token ${currentTokenIdx+1}/${tokens.length}: ${t.name?t.name+' · ':''}${t.mask}${selectedTokenIdx!==null?' 📌':''}`;
   } else document.getElementById('cur-tok-lbl').textContent='';
+}
+
+function selectRound(n) {
+  if (isClaiming) { addLog('⚠ Đang claim dở, đợi xong rồi hẵng đổi lần.','warn'); return; }
+  if (manualRound === n) {
+    // bấm lại lần đang chọn -> huỷ, quay về chạy tự động cả 3 lần
+    manualRound = null;
+    currentRound = 1;
+    totalEarned = 0;
+    addLog('↩️ Đã bỏ chọn, quay lại chạy tự động lần 1 → 2 → 3.','info');
+  } else {
+    manualRound = n;
+    currentRound = n;
+    totalEarned = 0;
+    addLog(`👉 Chỉ claim lần ${n}/3 (+${REWARDS[n-1]}xu), bỏ qua 2 lần còn lại.`,'info');
+  }
+  const btn=document.getElementById('btn-claim');
+  btn.innerHTML=`💖 Claim ngay (lần <span id="claimRoundTxt">${currentRound}</span>/3)`;
+  updateRoundsUI();
 }
 
 function startCooldown(ms) {
@@ -428,16 +501,21 @@ async function startClaimSession() {
   const btn=document.getElementById('btn-claim');
   btn.disabled=true; isClaiming=true; saveToStorage();
 
-  for (let i=currentTokenIdx; i<tokens.length; i++) {
-    if (tokens[i].status==='done') continue;
+  const tokenIndices = selectedTokenIdx !== null
+    ? [selectedTokenIdx]
+    : (()=>{ const arr=[]; for(let i=currentTokenIdx;i<tokens.length;i++) arr.push(i); return arr; })();
+
+  for (const i of tokenIndices) {
+    if (tokens[i].status==='done' && selectedTokenIdx===null) continue;
     currentTokenIdx=i; tokens[i].status='active';
-    // If starting fresh on this token, reset round
-    if (tokens[i].earned===0) { currentRound=1; totalEarned=0; }
+    // If starting fresh on this token, reset round (trừ khi đang ở chế độ chỉ-claim-1-lần)
+    if (tokens[i].earned===0) { currentRound = manualRound || 1; totalEarned = 0; }
     renderTL(); updateRoundsUI();
-    addLog(`── Token ${i+1}/${tokens.length}: ${tokens[i].mask} ──`,'info');
+    addLog(`── Token ${i+1}/${tokens.length}: ${tokens[i].name||tokens[i].mask} ──`,'info');
 
     let tokDone=true;
-    for (let r=currentRound; r<=3; r++) {
+    const roundsToRun = manualRound ? [manualRound] : (()=>{const arr=[];for(let r=currentRound;r<=3;r++)arr.push(r);return arr;})();
+    for (const r of roundsToRun) {
       currentRound=r; updateRoundsUI();
       addLog(`💖 Bắt đầu claim lần ${r}/3 (dự kiến +${REWARDS[r-1]}xu)...`,'info');
       try {
@@ -451,7 +529,7 @@ async function startClaimSession() {
           addLog(`⏳ Token này đang cooldown (${data.cooldownSec}s)...`,'warn');
           tokens[i].status='cooldown'; tokDone=false;
           const remainingActive=tokens.filter(t=>t.status==='pending').length;
-          if (i===tokens.length-1||remainingActive===0) startCooldown(data.cooldownMs);
+          if (i===tokenIndices[tokenIndices.length-1]||remainingActive===0) startCooldown(data.cooldownMs);
           break;
         }
         if (!data.status) {
@@ -475,7 +553,7 @@ async function startClaimSession() {
         // Sau mỗi round: reset captcha, chờ user giải lại
         if (provider==='manual') {
           resetCaptcha();
-          if (r<3) {
+          if (r<3 && !manualRound) {
             addLog(`⚠ Giải lại captcha cho lần ${r+1}/3 rồi bấm Claim!`,'warn');
             currentRound=r+1; updateRoundsUI();
             tokens[i].status='active'; renderTL();
@@ -491,14 +569,16 @@ async function startClaimSession() {
     }
 
     if (tokDone) {
-      document.getElementById('round-3').classList.remove('active');
-      document.getElementById('round-3').classList.add('done');
-      document.getElementById('progressFill').style.width='100%';
+      if (!manualRound) {
+        document.getElementById('round-3').classList.remove('active');
+        document.getElementById('round-3').classList.add('done');
+        document.getElementById('progressFill').style.width='100%';
+      }
       tokens[i].status='done';
       addLog(`🌸 Token ${i+1} xong! +${tokens[i].earned}xu`,'ok');
       // reset for next token
-      currentRound=1; totalEarned=0;
-      if (i<tokens.length-1) await new Promise(r=>setTimeout(r,600));
+      currentRound = manualRound || 1; totalEarned=0;
+      if (i!==tokenIndices[tokenIndices.length-1]) await new Promise(r=>setTimeout(r,600));
     }
     renderTL(); updateRoundsUI();
   }
@@ -521,7 +601,7 @@ async function startClaimSession() {
 
 function renderInfoSel() {
   document.getElementById('info-sel').innerHTML='<option value="">-- Chọn token --</option>'+
-    tokens.map((t,i)=>`<option value="${i}">Token ${i+1}: ${t.mask}${t.username?' · '+t.username:''}</option>`).join('');
+    tokens.map((t,i)=>`<option value="${i}">Token ${i+1}: ${t.name?t.name+' · ':''}${t.mask}${t.username?' · '+t.username:''}</option>`).join('');
 }
 
 async function fetchInfo() {
@@ -536,6 +616,7 @@ async function fetchInfo() {
     document.getElementById('info-placeholder').classList.add('hidden');
     document.getElementById('info-content').classList.remove('hidden');
     const a=data.account||{};
+    document.getElementById('i-id').textContent=a.id??'—';
     document.getElementById('i-username').textContent=a.username||'—';
     document.getElementById('i-coins').textContent=(a.coins??'—')+' xu';
     document.getElementById('i-discord').textContent=a.discord||'—';
