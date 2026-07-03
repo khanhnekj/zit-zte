@@ -237,10 +237,9 @@ textarea{resize:vertical;min-height:72px;font-family:var(--mono);font-size:12px;
       <div id="info-placeholder" style="font-size:13px;color:var(--text2)">Chọn token rồi bấm Lấy info.</div>
       <div id="info-content" class="hidden">
         <div class="info-grid">
-          <div class="info-item"><div class="lbl">ID tài khoản</div><div class="val" id="i-id" style="font-size:13px">—</div></div>
+          <div class="info-item"><div class="lbl">ID tài khoản (Discord ID)</div><div class="val" id="i-id" style="font-size:13px">—</div></div>
           <div class="info-item"><div class="lbl">Username</div><div class="val" id="i-username">—</div></div>
           <div class="info-item"><div class="lbl">Số dư coins</div><div class="val coins" id="i-coins">—</div></div>
-          <div class="info-item"><div class="lbl">Discord ID</div><div class="val" id="i-discord" style="font-size:13px">—</div></div>
           <div class="info-item"><div class="lbl">Servers</div><div class="val" id="i-servers">—</div></div>
         </div>
         <div class="divider"></div>
@@ -616,10 +615,9 @@ async function fetchInfo() {
     document.getElementById('info-placeholder').classList.add('hidden');
     document.getElementById('info-content').classList.remove('hidden');
     const a=data.account||{};
-    document.getElementById('i-id').textContent=a.id??'—';
+    document.getElementById('i-id').textContent=a.discord||a.id||'—';
     document.getElementById('i-username').textContent=a.username||'—';
     document.getElementById('i-coins').textContent=(a.coins??'—')+' xu';
-    document.getElementById('i-discord').textContent=a.discord||'—';
     document.getElementById('i-servers').textContent=data.servers?.count??'—';
     if (a.username) { tokens[idx].username=a.username; renderTL(); }
     const sl=document.getElementById('i-server-list'); sl.innerHTML='';
